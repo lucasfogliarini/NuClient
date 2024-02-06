@@ -56,8 +56,8 @@ namespace NuClient
 				type = "login-webapp"
             };
 			var jsonContent = JsonContent.Create(body);
-            //var liftResponse = _httpClient.PostAsync(Lift, jsonContent).Result;
-            var lift = GetBody("lift.json");// liftResponse.Content.ReadFromJsonAsync<Dictionary<string, object>>().Result;
+            var liftResponse = _httpClient.PostAsync(Lift, jsonContent).Result;
+            var lift = liftResponse.Content.ReadFromJsonAsync<Dictionary<string, object>>().Result;
 
 			SetAuthToken(lift);
 			SetAuthEndpoints(lift);
@@ -91,8 +91,8 @@ namespace NuClient
                 password = _password
             };
 			var jsonContent = JsonContent.Create(body);
-			//var loginResponse = await _httpClient.PostAsync(Login, jsonContent);
-			var login = GetBody("gettoken.json"); //await loginResponse.Content.ReadFromJsonAsync<Dictionary<string, object>>();
+			var loginResponse = await _httpClient.PostAsync(Login, jsonContent);
+			var login = await loginResponse.Content.ReadFromJsonAsync<Dictionary<string, object>>();
 
 			SetAuthToken(login);
         }
