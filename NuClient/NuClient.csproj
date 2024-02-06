@@ -4,14 +4,20 @@
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+	<PackageProjectUrl>https://github.com/lucasfogliarini/NuClient</PackageProjectUrl>
+	<RepositoryUrl>https://github.com/lucasfogliarini/NuClient</RepositoryUrl>
+	<PackageReadmeFile>README.md</PackageReadmeFile>
+	<Description>NuClient é uma biblioteca para interagir com a API do Nubank para buscar eventos(transações, pagamentos, etc) dos cartões de crédito.</Description>
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Remove="Endpoints.cs" />
+    <None Include="..\README.md">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
     <PackageReference Include="QRCoder" Version="1.4.3" />
   </ItemGroup>
 

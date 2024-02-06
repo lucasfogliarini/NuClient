@@ -1,0 +1,37 @@
+#https://learn.microsoft.com/pt-br/azure/devops/pipelines/artifacts/nuget?toc=%2Fazure%2Fdevops%2Fartifacts%2Ftoc.json&view=azure-devops&tabs=yaml
+
+trigger:
+- master
+
+pool:
+  vmImage: 'windows-latest'
+
+variables:
+  solution: '**/*.sln'
+  buildPlatform: 'Any CPU'
+  buildConfiguration: 'Release'
+
+steps:
+- task: DotNetCoreCLI@2
+  displayName: 'Build'
+  inputs:
+    command: 'build'
+    projects: '$(solution)'
+    arguments: '--configuration $(buildConfiguration)'
+
+- task: DotNetCoreCLI@2
+  displayName: 'Pack'
+  inputs:
+    command: 'pack'
+    packagesToPack: '**/NuClient.csproj'
+    packDestination: '$(Build.ArtifactStagingDirectory)'
+    versioningScheme: 'byEnvVar'
+    versionEnvVar: 'BUILD_BUILDNUMBER'
+
+#https://learn.microsoft.com/pt-br/azure/devops/pipelines/artifacts/nuget?view=azure-devops&tabs=yaml#publish-to-nugetorg
+- task: NuGetCommand@2
+  displayName: 'Push to NuGet.org'
+  inputs:
+    command: push
+    nuGetFeedType: external
+    publishFeedCredentials: 'Bora Nuget'
