@@ -1,16 +1,13 @@
 using NuClient.Models.Login;
 using NuClient.Models.Events;
 using System.Security.Authentication;
-using Newtonsoft.Json.Linq;
-using Newtonsoft.Json;
-using static QRCoder.PayloadGenerator;
-using System.Text;
 using System.Net.Http.Json;
 using System.Net.Http.Headers;
+using System.Text.Json;
 
 namespace NuClient
 {
-    public class NubankClient
+	public class NubankClient
     {
 		private const string DiscoveryUrl = "https://prod-s0-webapp-proxy.nubank.com.br/api/discovery";
 		private const string DiscoveryAppUrl = "https://prod-s0-webapp-proxy.nubank.com.br/api/app/discovery";
@@ -92,7 +89,7 @@ namespace NuClient
             };
 			var jsonContent = JsonContent.Create(body);
 			var loginResponse = await _httpClient.PostAsync(Login, jsonContent);
-			var login = await loginResponse.Content.ReadFromJsonAsync<Dictionary<string, object>>();
+            var login = await loginResponse.Content.ReadFromJsonAsync<Dictionary<string, object>>();
 
 			SetAuthToken(login);
         }
@@ -101,7 +98,7 @@ namespace NuClient
             string desktopPath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
             string filePath = Path.Combine(desktopPath, fileName);
             string fileContent = File.ReadAllText(filePath);
-            var response = JsonConvert.DeserializeObject<Dictionary<string, object>>(fileContent);
+            var response = JsonSerializer.Deserialize<Dictionary<string, object>>(fileContent);
             return response;
         }
         private void SetAuthToken(Dictionary<string, object> response)
@@ -119,14 +116,13 @@ namespace NuClient
         }
         private void SetAuthEndpoints(Dictionary<string, object> response)
         {
-            var listLinks = (JObject)response["_links"];
-            var properties = listLinks.Properties();
-            var values = listLinks.Values();
-			_autenticatedEndpoints = listLinks
-                .Properties()
-                .Select(x => new KeyValuePair<string, string>(x.Name, (string)listLinks[x.Name]["href"]))
-                .ToDictionary(key => key.Key, key => key.Value);
-        }
+			var _links = (JsonElement)response["_links"];
+            _autenticatedEndpoints = [];
+			foreach (var link in _links.EnumerateObject())
+			{
+				_autenticatedEndpoints.Add(link.Name, link.Value.GetProperty("href").GetString());
+			}
+		}
         private Dictionary<string, string?> GetUrls(string url)
         {
 			var urlsResponse = _httpClient.GetAsync(url).Result;
