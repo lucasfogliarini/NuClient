@@ -1,5 +1,6 @@
 {
   "login": "login",
   "password": "pass",
-  "invoiceClosingDay" : "4"
+  "invoiceClosingDay": "4",
+  "invoiceClosingYear": "2024"
 }
