@@ -8,6 +8,7 @@
 	<RepositoryUrl>https://github.com/lucasfogliarini/NuClient</RepositoryUrl>
 	<PackageReadmeFile>README.md</PackageReadmeFile>
 	<Description>NuClient é uma biblioteca para interagir com a API do Nubank para buscar eventos(transações, pagamentos, etc) dos cartões de crédito.</Description>
+	<PackageId>NuCli</PackageId>
   </PropertyGroup>
 
   <ItemGroup>
