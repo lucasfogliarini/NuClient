@@ -1,8 +1,10 @@
+[![NuGet](https://img.shields.io/nuget/v/nucli?label=Nucli&style=for-the-badge)](https://www.nuget.org/packages/nucli/)
+
 # NuClient
 
 `NuClient` é uma biblioteca para interagir com a API do Nubank para buscar eventos(transações, pagamentos, etc) dos cartões de crédito.
 
-### Operações
+## Operações
    - `LoginAsync()`: Autenticar o usuário com as credenciais fornecidas.
    - `AutenticateWithQrCodeAsync(string code)`: Autentica o usuário usando um código QR.
    - `GetEventsAsync()`: Recupera eventos da conta do usuário autenticado.
@@ -10,6 +12,7 @@
 
 ## Como usar
 O código abaixo exemplifica como usar, mas também é possível rodar o Console.App NubankApp que está na mesma solution do código.
+
 ```csharp
 
 string login = "seu_login";
