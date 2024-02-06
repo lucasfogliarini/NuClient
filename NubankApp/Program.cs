@@ -1,15 +1,16 @@
 ﻿using ConsoleTables;
+using Microsoft.Extensions.Configuration;
+using NubankApp;
 using NuClient;
 using NuClient.Models.Events;
 
-Console.WriteLine("Nubank Client");
-Console.WriteLine("Please, type your login (CPF):");
-var login = Console.ReadLine().Trim();
-Console.WriteLine("Type your password:");
-var password = Console.ReadLine().Trim();
+Console.WriteLine("Initing NubankApp using NuClient package ...");
+Console.WriteLine("Initing config (local.settings.json) ...");
+var config = GetConfig();
+Console.WriteLine($"Logging NubankClient using '{config.Login}' and '{config.Password}'");
+Console.WriteLine();
 
-
-var nubankClient = new NubankClient(login, password);
+var nubankClient = new NubankClient(config.Login, config.Password);
 var result = await nubankClient.LoginAsync();
 
 if (result.NeedsDeviceAuthorization)
@@ -31,15 +32,26 @@ if (result.NeedsDeviceAuthorization)
 bool exit = false;
 while (!exit)
 {
-	Console.WriteLine("c: credit card events.");
-	Console.WriteLine("s: savings.");
+	Console.WriteLine("c: Credit Card transactions.");
 	Console.WriteLine("e: exit.");
 	var opt = Console.ReadKey();
 	Console.Clear();
 	switch (opt.Key)
 	{
 		case ConsoleKey.C:
-			await GetEventsAsync();
+			Console.WriteLine("Choice the invoice month: ");
+			var monthKey = Console.ReadLine();
+			if (!int.TryParse(monthKey, out int month))
+			{
+				Console.WriteLine("Month must be number!");
+				return;
+			}
+			Console.WriteLine("Filter a card by typing the last 4 digits or any key for all cards: ");
+			var card = Console.ReadLine();
+
+			int year = DateTime.Now.Year;
+			int day = int.Parse(config.InvoiceClosingDay);
+			await GetTransactionsAsync(year, month, day, card);
 			break;
 		case ConsoleKey.E:
 			exit = true;
@@ -50,30 +62,70 @@ while (!exit)
 	}
 }
 
-async Task GetEventsAsync()
+async Task GetTransactionsAsync(int year, int month, int day, string? card = null)
 {
-	var month = 1;
-	var from = new DateTime(2024, month, 4);
+	card = string.IsNullOrWhiteSpace(card) ? null : card;
+	var cardMessage = card == null ? "all cards" : $"final card '{card}'";
+	Console.Clear();
+	var from = new DateTime(year, month, day);
 	var to = from.AddMonths(1);
+	Console.WriteLine($"Looking for transactions from '{from.ToShortDateString()}' to '{to.ToShortDateString()}' of {cardMessage}");
 	var events = await nubankClient.GetEventsAsync();
-	var ev = events
+	Console.WriteLine($"Found {events.Count()} Events.");
+	events = events
 				.Where(e => e.Time >= from && e.Time < to)
-				.Where(e=>e.Category == Event.transaction)
-				.Select(e=>new
-				{
-					e.Time,
-					e.Description,
-					Amount = e.Details.Charges?.CurrencyAmount ?? e.CurrencyAmount,
-					e.CurrencyAmount,
-					e.Title,
-					ChargesAmount = e.Details.Charges?.CurrencyAmount,
-					Charges = e.Details.Charges?.Count,
-					e.Category
-					
-				});
-	var total = ev.Sum(e=>e.Amount);
-	Console.WriteLine($"Total: {total}");
+				.Where(e => e.Category == Event.transaction);
+	Console.WriteLine($"Found {events.Count()} Transacions.");
+	var transactions = new List<Transaction>();
+	var eventsCount = events.Count();
+	for (int i = 0; i < eventsCount; i++)
+	{
+		var e = events.ElementAt(i);
+		if(card != null)
+		{
+			decimal transactionDetailProcess = (decimal)(i+1) / eventsCount * 100;
+			Console.WriteLine($"Looking for Transaction Detail '{e.Id}'. {transactionDetailProcess:F2}%");
+			var transactionDetail = await nubankClient.GetTransactionDetailsAsync(e);
+			if (transactionDetail?.Card_last_four_digits != card)
+				continue;
+		}
+
+		var transaction = new Transaction
+		{
+			Time = e.Time,
+			Description = e.Description,
+			CurrencyAmount = e.CurrencyAmount,
+			ChargesAmount = e.Details?.Charges?.CurrencyAmount ?? e.CurrencyAmount,
+			Charges = e.Details?.Charges?.Count,
+			Title = e.Title,
+			Category = e.Category,
+			Card = card,
+		};
+		transactions.Add(transaction);
+	}
+
+	Console.Clear();
+	var total = transactions.Sum(t=>t.ChargesAmount);
+	Console.WriteLine();
+	Console.WriteLine($"Total: {total} (ChargesAmount)");
 	ConsoleTable
-	.From(ev)
+	.From(transactions)
 	.Write(Format.Minimal);
+	Console.WriteLine();
+	Console.WriteLine($"Total: {total} (ChargesAmount)");
+}
+
+Config GetConfig()
+{
+	IConfiguration config = new ConfigurationBuilder()
+			.SetBasePath(Directory.GetCurrentDirectory())
+			.AddJsonFile("local.settings.json", optional: true, reloadOnChange: true)
+			.Build();
+
+	return new Config
+	{
+		Login = config["login"],
+		Password = config["password"],
+		InvoiceClosingDay = config["invoiceClosingDay"]
+	};
 }
