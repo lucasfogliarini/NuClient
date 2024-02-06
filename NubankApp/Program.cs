@@ -7,7 +7,7 @@ using NuClient.Models.Events;
 Console.WriteLine("Initing NubankApp using NuClient package ...");
 Console.WriteLine("Initing config (local.settings.json) ...");
 var config = GetConfig();
-Console.WriteLine($"Logging NubankClient using '{config.Login}' and '{config.Password}'");
+Console.WriteLine($"Logging in NubankClient using '{config.Login}' and '{config.Password}'");
 Console.WriteLine();
 
 var nubankClient = new NubankClient(config.Login, config.Password);
@@ -39,19 +39,22 @@ while (!exit)
 	switch (opt.Key)
 	{
 		case ConsoleKey.C:
-			Console.WriteLine("Choice the invoice month: ");
+			int currentYear = DateTime.Now.Year;
+			int invoiceClosingDay = int.Parse(config.InvoiceClosingDay);
+			Console.WriteLine("I need a closing date for a specific invoice to filter transactions.");
+			Console.WriteLine($"Invoice closing year: '{currentYear}' (current year)");
+			Console.WriteLine($"Invoice closing day: '{invoiceClosingDay}' (from configuration)");
+			Console.Write("Then choice the invoice closing month: ");
 			var monthKey = Console.ReadLine();
 			if (!int.TryParse(monthKey, out int month))
 			{
 				Console.WriteLine("Month must be number!");
 				return;
 			}
-			Console.WriteLine("Filter a card by typing the last 4 digits or any key for all cards: ");
+			Console.Write("Filter a card by typing the last 4 digits or any key for all cards: ");
 			var card = Console.ReadLine();
 
-			int year = DateTime.Now.Year;
-			int day = int.Parse(config.InvoiceClosingDay);
-			await GetTransactionsAsync(year, month, day, card);
+			await GetTransactionsAsync(currentYear, month, invoiceClosingDay, card);
 			break;
 		case ConsoleKey.E:
 			exit = true;
@@ -67,8 +70,8 @@ async Task GetTransactionsAsync(int year, int month, int day, string? card = nul
 	card = string.IsNullOrWhiteSpace(card) ? null : card;
 	var cardMessage = card == null ? "all cards" : $"final card '{card}'";
 	Console.Clear();
-	var from = new DateTime(year, month, day);
-	var to = from.AddMonths(1);
+	var to = new DateTime(year, month, day);
+	var from = to.AddMonths(-1);
 	Console.WriteLine($"Looking for transactions from '{from.ToShortDateString()}' to '{to.ToShortDateString()}' of {cardMessage}");
 	var events = await nubankClient.GetEventsAsync();
 	events = events
