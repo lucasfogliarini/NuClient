@@ -71,11 +71,10 @@ async Task GetTransactionsAsync(int year, int month, int day, string? card = nul
 	var to = from.AddMonths(1);
 	Console.WriteLine($"Looking for transactions from '{from.ToShortDateString()}' to '{to.ToShortDateString()}' of {cardMessage}");
 	var events = await nubankClient.GetEventsAsync();
-	Console.WriteLine($"Found {events.Count()} Events.");
 	events = events
 				.Where(e => e.Time >= from && e.Time < to)
 				.Where(e => e.Category == Event.transaction);
-	Console.WriteLine($"Found {events.Count()} Transacions.");
+	Console.WriteLine($"Found {events.Count()} Transactions.");
 	var transactions = new List<Transaction>();
 	var eventsCount = events.Count();
 	for (int i = 0; i < eventsCount; i++)
