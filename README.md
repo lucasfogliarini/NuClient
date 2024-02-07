@@ -2,38 +2,38 @@
 
 # NuClient
 
-`NuClient` é uma biblioteca para interagir com a API do Nubank para buscar eventos(transações, pagamentos, etc) dos cartões de crédito.
+`NuClient` Ã© uma biblioteca para interagir com a API do Nubank para buscar eventos(transaÃ§Ãµes, pagamentos, etc) dos cartÃµes de crÃ©dito.
 
-## Operações
-   - `LoginAsync()`: Autenticar o usuário com as credenciais fornecidas.
-   - `AutenticateWithQrCodeAsync(string code)`: Autentica o usuário usando um código QR.
-   - `GetEventsAsync()`: Recupera eventos da conta do usuário autenticado.
-   - `GetTransactionDetailsAsync(Event @event)`: Obtém detalhes de transação para um evento específico.
+## OperaÃ§Ãµes
+   - `LoginAsync()`: Logar o usuÃ¡rio com as credenciais fornecidas.
+   - `AutenticateWithQrCodeAsync(string code)`: Autentica o usuÃ¡rio usando um cÃ³digo QR.
+   - `UseCache(string filePath)`: Permite usar cache usando informaÃ§Ãµes da requisiÃ§Ã£o em AutenticateWithQrCodeAsync salvos em um arquivo lift.json. (O token desse cache expira em aproximadamente 1 semana)
+   - `GetEventsAsync()`: Recupera eventos da conta do usuÃ¡rio autenticado.
+   - `GetTransactionDetailsAsync(Event @event)`: ObtÃ©m detalhes de transaÃ§Ã£oo para um evento especÃ­fico.
 
 ## Como usar
-O código abaixo exemplifica como usar, mas também é possível rodar o Console.App NubankApp que está na mesma solution do código.
+O cÃ³digo abaixo exemplifica como usar, mas tambÃ©m Ã© possÃ­vel rodar o Console.App NubankApp que estÃ¡ na mesma solution do cÃ³digo.
 
 ```csharp
 
 string login = "seu_login";
 string senha = "sua_senha";
 
-NubankClient nubankClient = new NubankClient(login, senha);
-var result = await nubankClient.LoginAsync();
+var nubankClient = new NubankClient(config.Login, config.Password);
+//nubankClient.UseCache("lift.json"); //opcional
+var loginResponse = await nubankClient.LoginAsync();
 
-if (result.NeedsDeviceAuthorization)
+if (loginResponse.MustAuthenticate)
 {
-	Console.WriteLine("You must authenticate with your phone to be able to access your data.");
-	Console.WriteLine("Scan the QRCode below with you Nubank application on the following menu:");
-	Console.WriteLine("Nu(Seu Nome) > Perfil > Acesso pelo site");
+	Console.WriteLine("VocÃª deve se autenticar com o aplicativo do Nubank para acessar os dados.");
+	Console.WriteLine("Entre no aplicativo Nubank > Perfil > SeguranÃ§a > Acesso no Navegador");
+	Console.WriteLine("E scaneie o QRCode abaixo:");
 	Console.WriteLine();
-
-	Console.WriteLine(result.GetQrCodeAsAscii());
-	Console.WriteLine($"Use your phone to scan and after this press any key to continue...");
+	Console.WriteLine(loginResponse.GetQrCodeAsAscii());
+	Console.WriteLine($"Depois de autorizado clique em qualquer tecla para continuar ...");
 	Console.ReadKey();
 
-	await nubankClient.AutenticateWithQrCodeAsync(result.Code);
-	var events = await nubankClient.GetEventsAsync();
+	await nubankClient.AutenticateWithQrCodeAsync(loginResponse.Code);
 }
 ```
 
