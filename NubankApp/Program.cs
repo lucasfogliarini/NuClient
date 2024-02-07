@@ -11,19 +11,20 @@ Console.WriteLine($"Logando se no Nubank usando o Login: '{config.Login}' e Senh
 Console.WriteLine();
 
 var nubankClient = new NubankClient(config.Login, config.Password);
-var result = await nubankClient.LoginAsync();
+nubankClient.UseCache("lift.json");
+var loginResponse = await nubankClient.LoginAsync();
 
-if (result.NeedsDeviceAuthorization)
+if (loginResponse.MustAuthenticate)
 {
 	Console.WriteLine("Você deve se autenticar com o aplicativo do Nubank para acessar os dados.");
 	Console.WriteLine("Entre no aplicativo Nubank > Perfil > Segurança > Acesso no Navegador");
 	Console.WriteLine("E scaneie o QRCode abaixo:");
 	Console.WriteLine();
-	Console.WriteLine(result.GetQrCodeAsAscii());
+	Console.WriteLine(loginResponse.GetQrCodeAsAscii());
 	Console.WriteLine($"Depois de autorizado clique em qualquer tecla para continuar ...");
 	Console.ReadKey();
 
-	await nubankClient.AutenticateWithQrCodeAsync(result.Code);
+	await nubankClient.AutenticateWithQrCodeAsync(loginResponse.Code);
 }
 
 Console.Clear();
@@ -41,8 +42,8 @@ while (!exit)
 			int invoiceClosingYear = int.Parse(config.InvoiceClosingYear);
 			int invoiceClosingDay = int.Parse(config.InvoiceClosingDay);
 			Console.WriteLine("Eu preciso de uma data da fatura para filtrar as transações.");
-			Console.WriteLine($"Ano de fechamento da fatura: '{invoiceClosingYear}' (from configuration)");
-			Console.WriteLine($"Dia de fechamento da fatura: '{invoiceClosingDay}' (from configuration)");
+			Console.WriteLine($"Ano de fechamento da fatura: '{invoiceClosingYear}' (via configuração)");
+			Console.WriteLine($"Dia de fechamento da fatura: '{invoiceClosingDay}' (via configuração)");
 			Console.Write("Por último preciso do mês de fechamento da fatura: ");
 			var monthKey = Console.ReadLine();
 			if (!int.TryParse(monthKey, out int invoiceClosingMonth))
@@ -74,7 +75,7 @@ async Task GetTransactionsAsync(int year, int month, int day, string? card = nul
 	Console.WriteLine($"Procurando por transações de '{from.ToShortDateString()}' até '{to.ToShortDateString()}' com {cardMessage}");
 	var events = await nubankClient.GetEventsAsync();
 	events = events
-				.Where(e => e.Time >= from && e.Time < to)
+				.Where(e => e.Time.Date >= from && e.Time.Date < to)
 				.Where(e => e.Category == Event.transaction);
 	Console.WriteLine($"Encontrei {events.Count()} transações.");
 	var transactions = new List<Transaction>();
@@ -100,7 +101,7 @@ async Task GetTransactionsAsync(int year, int month, int day, string? card = nul
 			Charges = e.Details?.Charges?.Count,
 			Title = e.Title,
 			Category = e.Category,
-			Card = card,
+			Card = card ?? "any",
 		};
 		transactions.Add(transaction);
 	}

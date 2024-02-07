@@ -1,27 +1,24 @@
 ﻿using QRCoder;
-using System.Drawing;
 
 namespace NuClient.Models.Login
 {
-    public class LoginResponse
+	public class LoginResponse
     {
-        public LoginResponse()
+        public LoginResponse(bool mustAuthenticate)
         {
-            NeedsDeviceAuthorization = false;
-        }
+            MustAuthenticate = mustAuthenticate;
+            if(MustAuthenticate)
+            {
+				Code = Guid.NewGuid().ToString();
 
-        public LoginResponse(string code)
-        {
-            NeedsDeviceAuthorization = true;
-            Code = code;
-
-            var qrGenerator = new QRCodeGenerator();
-            _qrCodeData = qrGenerator.CreateQrCode(Code, QRCodeGenerator.ECCLevel.Q);
+				var qrGenerator = new QRCodeGenerator();
+				_qrCodeData = qrGenerator.CreateQrCode(Code, QRCodeGenerator.ECCLevel.Q);
+			}
         }
 
         private readonly QRCodeData _qrCodeData;
 
-        public bool NeedsDeviceAuthorization { get; }
+        public bool MustAuthenticate { get; }
         public string Code { get; }
 
         public string GetQrCodeAsAscii()

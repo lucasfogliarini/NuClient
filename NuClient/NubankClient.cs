@@ -20,6 +20,7 @@ namespace NuClient
 		private readonly string _login;
         private readonly string _password;
         private readonly HttpClient _httpClient;
+        private bool _saveLift = false;
 
 		public NubankClient(string login, string password)
             : this(new HttpClient(), login, password)
@@ -34,14 +35,8 @@ namespace NuClient
 
         public async Task<LoginResponse> LoginAsync()
         {
-            //await GetTokenAsync();
-
-            //if (Events != null)
-            //{
-            //    return new LoginResponse();
-            //}
-
-            return new LoginResponse(Guid.NewGuid().ToString());
+            bool mustAuthenticate = Events == null;
+            return new LoginResponse(mustAuthenticate);
         }
         public async Task AutenticateWithQrCodeAsync(string code)
         {
@@ -56,8 +51,10 @@ namespace NuClient
             var liftResponse = _httpClient.PostAsync(Lift, jsonContent).Result;
             var lift = liftResponse.Content.ReadFromJsonAsync<Dictionary<string, object>>().Result;
 
-			SetAuthToken(lift);
-			SetAuthEndpoints(lift);
+            if(_saveLift)
+                File.WriteAllText("lift.json", await liftResponse.Content.ReadAsStringAsync());
+
+			SetLift(lift);
 		}
         public async Task<IEnumerable<Event>> GetEventsAsync()
         {
@@ -72,6 +69,23 @@ namespace NuClient
 			var transactionDetailResponse = await _httpClient.GetAsync(transactionDetailLink);
 			var transactionDetail = await transactionDetailResponse.Content.ReadFromJsonAsync<TransactionResponse>();
 			return transactionDetail?.Transaction;
+		}
+
+        public void UseCache(string filePath)
+        {
+			_saveLift = true;
+			if (!File.Exists(filePath))
+                return;
+
+			string fileContent = File.ReadAllText(filePath);
+			var lift = JsonSerializer.Deserialize<Dictionary<string, object>>(fileContent);
+            SetLift(lift);
+		}
+
+        private void SetLift(Dictionary<string, object> lift)
+        {
+			SetAuthToken(lift);
+			SetAuthEndpoints(lift);
 		}
 
 		private async Task GetTokenAsync()
@@ -89,17 +103,9 @@ namespace NuClient
             };
 			var jsonContent = JsonContent.Create(body);
 			var loginResponse = await _httpClient.PostAsync(Login, jsonContent);
-            var login = await loginResponse.Content.ReadFromJsonAsync<Dictionary<string, object>>();
+			var login = await loginResponse.Content.ReadFromJsonAsync<Dictionary<string, object>>();
 
 			SetAuthToken(login);
-        }
-		private Dictionary<string, object> GetBody(string fileName)
-        {
-            string desktopPath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
-            string filePath = Path.Combine(desktopPath, fileName);
-            string fileContent = File.ReadAllText(filePath);
-            var response = JsonSerializer.Deserialize<Dictionary<string, object>>(fileContent);
-            return response;
         }
         private void SetAuthToken(Dictionary<string, object> response)
         {
