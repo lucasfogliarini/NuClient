@@ -4,6 +4,7 @@ using System.Security.Authentication;
 using System.Net.Http.Json;
 using System.Net.Http.Headers;
 using System.Text.Json;
+using NuClient.Models.Bills;
 
 namespace NuClient
 {
@@ -16,6 +17,7 @@ namespace NuClient
 		private Dictionary<string, string> _autenticatedEndpoints;
 		private string? Login => GetDiscoverEndpoint("login");
 		private string? Events => _autenticatedEndpoints?.GetValueOrDefault("events");
+		private string? Bills => _autenticatedEndpoints?.GetValueOrDefault("bills_summary");
 		private string? Lift => GetDiscoverAppEndpoint("lift");
 		private readonly string _login;
         private readonly string _password;
@@ -64,9 +66,24 @@ namespace NuClient
             var events = await eventsResponse.Content.ReadFromJsonAsync<GetEventsResponse>();
 			return events.Events;
         }
+		public async Task<IEnumerable<Bill>?> GetBillsAsync()
+		{
+			var billsSummaryResponse = await _httpClient.GetAsync(Bills);
+			var bills = await billsSummaryResponse.Content.ReadFromJsonAsync<BillsResponse>();
+            return bills?.Bills;
+		}
+		public async Task<BillSummaryResponse?> GetBillSummaryAsync(Bill bill)
+		{
+			ArgumentNullException.ThrowIfNull(bill);
+			var billSummaryLink = bill.Links?.Self?.Href ?? throw new Exception("BillSummaryResponse must have _links");
+
+			var billSummaryResponse = await _httpClient.GetAsync(billSummaryLink);
+			var billSummary = await billSummaryResponse.Content.ReadFromJsonAsync<BillSummaryResponseParent>();
+			return billSummary?.Bill;
+		}
 		public async Task<TransactionDetails?> GetTransactionDetailsAsync(Event @event)
 		{
-            var transactionDetailLink = @event._Links?.Self?.Href ?? throw new Exception("Event must be transaction category (this category provides the '_links' field)");
+            var transactionDetailLink = @event.Links?.Self?.Href ?? throw new Exception("Event must be transaction category (this category provides the '_links' field)");
 
 			var transactionDetailResponse = await _httpClient.GetAsync(transactionDetailLink);
 			var transactionDetail = await transactionDetailResponse.Content.ReadFromJsonAsync<TransactionResponse>();

@@ -1,12 +1,16 @@
-﻿namespace NuClient.Models.Events
+﻿using System.Text.Json.Serialization;
+
+namespace NuClient.Models.Events
 {
 	public class EventDetails
 	{
         public Charges Charges { get; set; }
         public string? Subcategory { get; set; }
         public string? Status { get; set; }
-        public decimal Lat { get; set; }
-		public decimal Lon { get; set; }
+		[JsonPropertyName("lat")]
+		public decimal Latitude { get; set; }
+		[JsonPropertyName("lon")]
+		public decimal Longitude { get; set; }
     }
 
 	public class Charges

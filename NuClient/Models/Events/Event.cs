@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace NuClient.Models.Events
 {
 	public class Event
@@ -14,15 +16,7 @@ namespace NuClient.Models.Events
         public string? Title { get; set; }
         public string? Account { get; set; }
         public EventDetails? Details { get; set; }
-		public Links? _Links { get; set; }
+		[JsonPropertyName("_links")]
+		public Links? Links { get; set; }
     }
-
-	public class Links
-	{
-		public SelfLink? Self { get; set; }
-		public class SelfLink
-		{
-			public string? Href { get; set; }
-		}
-	}
 }

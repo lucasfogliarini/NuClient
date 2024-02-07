@@ -2,7 +2,9 @@
 using Microsoft.Extensions.Configuration;
 using NubankApp;
 using NuClient;
+using NuClient.Models.Bills;
 using NuClient.Models.Events;
+using System.Diagnostics.Tracing;
 
 Console.WriteLine("Iniciando NubankApp usando o pacote 'NuCli' ...");
 Console.WriteLine("Iniciando as configurações (local.settings.json) ...");
@@ -32,19 +34,20 @@ Console.Clear();
 bool exit = false;
 while (!exit)
 {
-	Console.WriteLine("c: Transações de Cartão de Crédito.");
+	Console.WriteLine("Digite uma opção do menu:");
+	Console.WriteLine("f: Buscar fatura de Cartão de Crédito.");
 	Console.WriteLine("e: Sair.");
 	var opt = Console.ReadKey();
 	Console.Clear();
 	switch (opt.Key)
 	{
-		case ConsoleKey.C:
+		case ConsoleKey.F:
 			int invoiceClosingYear = int.Parse(config.InvoiceClosingYear);
 			int invoiceClosingDay = int.Parse(config.InvoiceClosingDay);
-			Console.WriteLine("Eu preciso de uma data da fatura para filtrar as transações.");
+			Console.WriteLine("Para buscar uma fatura preciso da data de fechamento.");
 			Console.WriteLine($"Ano de fechamento da fatura: '{invoiceClosingYear}' (via configuração)");
 			Console.WriteLine($"Dia de fechamento da fatura: '{invoiceClosingDay}' (via configuração)");
-			Console.Write("Por último preciso do mês de fechamento da fatura: ");
+			Console.Write("Digite o mês de fechamento da fatura: ");
 			var monthKey = Console.ReadLine();
 			if (!int.TryParse(monthKey, out int invoiceClosingMonth))
 			{
@@ -53,70 +56,78 @@ while (!exit)
 				Console.ResetColor();
 				break;
 			}
+			var invoiceClosingDate = new DateTime(invoiceClosingYear, invoiceClosingMonth, invoiceClosingDay);
 			Console.Write("É possível filtrar por um cartão digitando os últimos 4 dígitos ou digite qualquer tecla para todos os cartões: ");
 			var card = Console.ReadLine();
-
-			await GetTransactionsAsync(invoiceClosingYear, invoiceClosingMonth, invoiceClosingDay, card);
+			await GetBillAsync(invoiceClosingDate, card);
 			break;
 		case ConsoleKey.E:
 			exit = true;
 			break;
 		default:
-			//Console.WriteLine("");
+			Console.WriteLine("Não existe essa opção");
 			break;
 	}
 }
 
-async Task GetTransactionsAsync(int year, int month, int day, string? card = null)
+async Task GetBillAsync(DateTime invoiceClosingDate, string? card = null)
 {
 	card = string.IsNullOrWhiteSpace(card) ? null : card;
-	var cardMessage = card == null ? "todos os cartões" : $"o cartão com final '{card}'";
+	var cardMessage = card == null ? "todos os cartões" : $"o cartão de final '{card}'";
 	Console.Clear();
-	var to = new DateTime(year, month, day);
-	var from = to.AddMonths(-1);
-	Console.WriteLine($"Procurando por transações de '{from.ToShortDateString()}' até '{to.ToShortDateString()}' com {cardMessage}");
-	var events = await nubankClient.GetEventsAsync();
-	events = events
-				.Where(e => e.Time >= from.Date && e.Time.Date < to.Date)
-				.Where(e => e.Category == Event.transaction);
-	Console.WriteLine($"Encontrei {events.Count()} transações.");
-	var transactions = new List<Transaction>();
-	var eventsCount = events.Count();
-	for (int i = 0; i < eventsCount; i++)
+	Console.WriteLine($"Buscando fatura de fechamento '{invoiceClosingDate.ToShortDateString()}' com {cardMessage}");
+	var bills = await nubankClient.GetBillsAsync();
+	Console.WriteLine($"Encontrei {bills.Count()} faturas na sua conta.");
+	var bill = bills.FirstOrDefault(b=> b.Summary.CloseDate.Date == invoiceClosingDate);
+	Console.WriteLine($"Encontrei a fatura que você quer {bill?.Summary?.CloseDate.Date.ToShortDateString()}");
+	if (bill?.State == "future")
 	{
-		var e = events.ElementAt(i);
-		if(card != null)
+		Console.ForegroundColor = ConsoleColor.Red;
+		Console.WriteLine($"Esta fatura está no futuro, precisa estar Em Aberto ou Fechada.");
+		Console.ResetColor();
+		return;
+	}
+	var billSummary = await nubankClient.GetBillSummaryAsync(bill);
+	var events = await nubankClient.GetEventsAsync();
+	var invoiceItems = new List<InvoiceItem>();
+	var billItemsCount = billSummary.Items.Count();
+	for (int i = 0; i < billItemsCount; i++)
+	{
+		var billItem = billSummary.Items.ElementAt(i);
+		Event billTransaction = null;
+		if (billItem.Type == BillItem.chargeType)
+			billTransaction = events.FirstOrDefault(e => e.Id == billItem.TransactionId);
+
+		if (card != null && billTransaction != null)
 		{
-			decimal transactionDetailProcess = (decimal)(i+1) / eventsCount * 100;
-			Console.WriteLine($"Procurando por detalhes da transação '{e.Id}'. {transactionDetailProcess:F2}%");
-			var transactionDetail = await nubankClient.GetTransactionDetailsAsync(e);
-			if (transactionDetail?.Card_last_four_digits != card)
+			decimal billTransactionProcess = (decimal)(i+1) / billItemsCount * 100;
+			Console.WriteLine($"{billTransactionProcess:F2}% Buscando por detalhes da transação '{billItem.Title}'.");
+			var transactionDetail = await nubankClient.GetTransactionDetailsAsync(billTransaction);
+			if (transactionDetail?.CardLastFourDigits != card)
 				continue;
 		}
 
-		var transaction = new Transaction
+		var invoiceItem = new InvoiceItem
 		{
-			Time = e.Time.LocalDateTime,
-			Description = e.Description,
-			CurrencyAmount = e.CurrencyAmount,
-			ChargesAmount = e.Details?.Charges?.CurrencyAmount ?? e.CurrencyAmount,
-			Charges = e.Details?.Charges?.Count,
-			Title = e.Title,
-			Category = e.Category,
+			Time = billItem.PostDate.LocalDateTime,
+			Title = billItem.Title,
+			CurrencyAmount = billItem.CurrencyAmount,
+			Charges = billItem.Charges,
+			Category = billItem.Category,
+			Type = billItem.Type ?? "open",
 			Card = card ?? "any",
 		};
-		transactions.Add(transaction);
+		invoiceItems.Add(invoiceItem);
 	}
 
-	Console.Clear();
-	var total = transactions.Sum(t=>t.ChargesAmount);
+	var total = invoiceItems.Where(i=> new[] { "adjustment","charge" }.Contains(i.Type)).Sum(t=>t.CurrencyAmount);
 	Console.WriteLine();
-	Console.WriteLine($"Total: {total} (ChargesAmount)");
+	Console.WriteLine($"Total: {total}");
 	ConsoleTable
-	.From(transactions)
-	.Write(Format.Minimal);
+	.From(invoiceItems.OrderBy(i=>i.Time))
+	.Write(Format.Default);
 	Console.WriteLine();
-	Console.WriteLine($"Total: {total} (ChargesAmount)");
+	Console.WriteLine($"Total: {total}");
 }
 
 Config GetConfig()
