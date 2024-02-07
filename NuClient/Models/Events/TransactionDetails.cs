@@ -7,7 +7,7 @@
         public string? Event_type { get; set; }
         public string? Card_type { get; set; }
         public string Mcc { get; set; }
-        public DateTime Time { get; set; }
+        public DateTimeOffset Time { get; set; }
 		public string? Category { get; set; }
         public string? Country { get; set; }
         public string? Status { get; set; }

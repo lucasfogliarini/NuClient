@@ -10,7 +10,7 @@ namespace NuClient.Models.Events
         public string? Category { get; set; }
         public decimal Amount { get; set; }
         public decimal CurrencyAmount => Amount / 100;
-        public DateTime Time { get; set; }
+        public DateTimeOffset Time { get; set; }
         public string? Title { get; set; }
         public string? Account { get; set; }
         public EventDetails? Details { get; set; }

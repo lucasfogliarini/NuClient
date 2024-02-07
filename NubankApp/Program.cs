@@ -48,8 +48,10 @@ while (!exit)
 			var monthKey = Console.ReadLine();
 			if (!int.TryParse(monthKey, out int invoiceClosingMonth))
 			{
+				Console.ForegroundColor = ConsoleColor.Red;
 				Console.WriteLine("Mês precisa ser um número!");
-				return;
+				Console.ResetColor();
+				break;
 			}
 			Console.Write("É possível filtrar por um cartão digitando os últimos 4 dígitos ou digite qualquer tecla para todos os cartões: ");
 			var card = Console.ReadLine();
@@ -75,7 +77,7 @@ async Task GetTransactionsAsync(int year, int month, int day, string? card = nul
 	Console.WriteLine($"Procurando por transações de '{from.ToShortDateString()}' até '{to.ToShortDateString()}' com {cardMessage}");
 	var events = await nubankClient.GetEventsAsync();
 	events = events
-				.Where(e => e.Time.Date >= from && e.Time.Date < to)
+				.Where(e => e.Time >= from.Date && e.Time.Date < to.Date)
 				.Where(e => e.Category == Event.transaction);
 	Console.WriteLine($"Encontrei {events.Count()} transações.");
 	var transactions = new List<Transaction>();
@@ -94,7 +96,7 @@ async Task GetTransactionsAsync(int year, int month, int day, string? card = nul
 
 		var transaction = new Transaction
 		{
-			Time = e.Time,
+			Time = e.Time.LocalDateTime,
 			Description = e.Description,
 			CurrencyAmount = e.CurrencyAmount,
 			ChargesAmount = e.Details?.Charges?.CurrencyAmount ?? e.CurrencyAmount,
