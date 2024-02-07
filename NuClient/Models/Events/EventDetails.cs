@@ -12,7 +12,7 @@
 	public class Charges
 	{
         public int Count { get; set; }
-        public int Amount { get; set; }
+        public decimal Amount { get; set; }
 		public decimal CurrencyAmount => Amount / 100;
 	}
 }
