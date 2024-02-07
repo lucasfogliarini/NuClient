@@ -19,8 +19,8 @@ O código abaixo exemplifica como usar, mas também é possível rodar o Console
 string login = "seu_login";
 string senha = "sua_senha";
 
-var nubankClient = new NubankClient(config.Login, config.Password);
-//nubankClient.UseCache("lift.json"); //opcional
+string liftCachedFilePath = "lift.json";//opcional
+var nubankClient = new NubankClient(login, senha, liftCachedFilePath);
 var loginResponse = await nubankClient.LoginAsync();
 
 if (loginResponse.MustAuthenticate)

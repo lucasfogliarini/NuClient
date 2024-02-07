@@ -10,8 +10,8 @@ var config = GetConfig();
 Console.WriteLine($"Logando se no Nubank usando o Login: '{config.Login}' e Senha: '{config.Password}'");
 Console.WriteLine();
 
-var nubankClient = new NubankClient(config.Login, config.Password);
-nubankClient.UseCache("lift.json");
+string liftCachedFilePath = "lift.json";//opcional
+var nubankClient = new NubankClient(config.Login, config.Password, liftCachedFilePath);
 var loginResponse = await nubankClient.LoginAsync();
 
 if (loginResponse.MustAuthenticate)

@@ -22,9 +22,11 @@ namespace NuClient
         private readonly HttpClient _httpClient;
         private bool _saveLift = false;
 
-		public NubankClient(string login, string password)
+		public NubankClient(string login, string password, string? liftCachedFilePath = null)
             : this(new HttpClient(), login, password)
-        { }
+        {
+            UseCache(liftCachedFilePath);        
+        }
 
         public NubankClient(HttpClient httpClient, string login, string password)
         {
@@ -71,23 +73,21 @@ namespace NuClient
 			return transactionDetail?.Transaction;
 		}
 
-        public void UseCache(string filePath)
+        private void UseCache(string liftCachedFilePath)
         {
 			_saveLift = true;
-			if (!File.Exists(filePath))
+			if (!File.Exists(liftCachedFilePath))
                 return;
 
-			string fileContent = File.ReadAllText(filePath);
-			var lift = JsonSerializer.Deserialize<Dictionary<string, object>>(fileContent);
+			string liftContent = File.ReadAllText(liftCachedFilePath);
+			var lift = JsonSerializer.Deserialize<Dictionary<string, object>>(liftContent);
             SetLift(lift);
 		}
-
         private void SetLift(Dictionary<string, object> lift)
         {
 			SetAuthToken(lift);
 			SetAuthEndpoints(lift);
 		}
-
 		private async Task GetTokenAsync()
         {
             if (_httpClient.DefaultRequestHeaders.Authorization != null)
