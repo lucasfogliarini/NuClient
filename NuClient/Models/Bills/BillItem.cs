@@ -5,6 +5,7 @@ namespace NuClient.Models.Bills
 	public class BillItem
 	{
 		public const string chargeType = "charge";
+		public const string adjustmentType = "adjustment";
 
 		[JsonPropertyName("post_date")]
 		public DateTimeOffset PostDate { get; set; }
@@ -23,7 +24,7 @@ namespace NuClient.Models.Bills
 		[JsonPropertyName("type")]
 		public string? Type { get; set; }
 		[JsonPropertyName("id")]
-		public Guid Id { get; set; }
+		public string? Id { get; set; }
 		[JsonPropertyName("href")]
 		public string? Href { get; set; }
 		public decimal CurrencyAmount => Amount / 100;

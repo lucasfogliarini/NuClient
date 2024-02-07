@@ -94,12 +94,13 @@ async Task GetBillAsync(DateTime invoiceClosingDate, string? card = null)
 	for (int i = 0; i < billItemsCount; i++)
 	{
 		var billItem = billSummary.Items.ElementAt(i);
-		Event billTransaction = null;
-		if (billItem.Type == BillItem.chargeType)
-			billTransaction = events.FirstOrDefault(e => e.Id == billItem.TransactionId);
 
-		if (card != null && billTransaction != null)
+		if (card != null)
 		{
+			Event billTransaction = events.FirstOrDefault(e => e.Id == billItem.TransactionId);
+			if (billTransaction == null)
+				continue;
+
 			decimal billTransactionProcess = (decimal)(i+1) / billItemsCount * 100;
 			Console.WriteLine($"{billTransactionProcess:F2}% Buscando por detalhes da transação '{billItem.Title}'.");
 			var transactionDetail = await nubankClient.GetTransactionDetailsAsync(billTransaction);
@@ -120,7 +121,7 @@ async Task GetBillAsync(DateTime invoiceClosingDate, string? card = null)
 		invoiceItems.Add(invoiceItem);
 	}
 
-	var total = invoiceItems.Where(i=> new[] { "adjustment","charge" }.Contains(i.Type)).Sum(t=>t.CurrencyAmount);
+	var total = invoiceItems.Where(i=> new[] { BillItem.adjustmentType , BillItem.chargeType }.Contains(i.Type)).Sum(t=>t.CurrencyAmount);
 	Console.WriteLine();
 	Console.WriteLine($"Total: {total}");
 	ConsoleTable
