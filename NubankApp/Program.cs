@@ -1,10 +1,10 @@
 ﻿using ConsoleTables;
 using Microsoft.Extensions.Configuration;
+using Microsoft.IdentityModel.Tokens;
 using NubankApp;
 using NuClient;
 using NuClient.Models.Bills;
 using NuClient.Models.Events;
-using System.Diagnostics.Tracing;
 
 Console.WriteLine("Iniciando NubankApp usando o pacote 'NuCli' ...");
 Console.WriteLine("Iniciando as configurações (local.settings.json) ...");
@@ -12,8 +12,24 @@ var config = GetConfig();
 Console.WriteLine($"Logando se no Nubank usando o Login: '{config.Login}' e Senha: '{config.Password}'");
 Console.WriteLine();
 
-string liftCachedFilePath = "lift.json";//opcional
-var nubankClient = new NubankClient(config.Login, config.Password, liftCachedFilePath);
+NubankClient nubankClient;
+try
+{
+	string liftCachedFilePath = "lift.json";//opcional
+	nubankClient = new NubankClient(config.Login, config.Password, liftCachedFilePath);
+}
+catch (SecurityTokenExpiredException ex)
+{
+	Console.ForegroundColor = ConsoleColor.Red;
+	Console.WriteLine($"O jwtToken do lift.json está expirado. Digite 'd' para deletar o lift.json, reinicie o app e tente se reautenticar. {ex.Message}");
+	var key = Console.ReadKey();
+	if (key.Key == ConsoleKey.D)
+	{
+		File.Delete("lift.json");
+	}
+	throw ex;
+}
+
 var loginResponse = await nubankClient.LoginAsync();
 
 if (loginResponse.MustAuthenticate)
