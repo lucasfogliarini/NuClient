@@ -1,10 +1,11 @@
 using NuClient.Models.Login;
 using NuClient.Models.Events;
-using System.Security.Authentication;
 using System.Net.Http.Json;
 using System.Net.Http.Headers;
 using System.Text.Json;
 using NuClient.Models.Bills;
+using System.IdentityModel.Tokens.Jwt;
+using Microsoft.IdentityModel.Tokens;
 
 namespace NuClient
 {
@@ -126,16 +127,8 @@ namespace NuClient
         }
         private void SetAuthToken(Dictionary<string, object> response)
         {
-            if (!response.Keys.Any(x => x == "access_token"))
-            {
-                if (response.Keys.Any(x => x == "error"))
-                {
-                    throw new AuthenticationException(response["error"].ToString());
-                }
-                throw new AuthenticationException("Unknow error occurred on trying to do login on Nubank using the entered credentials");
-            }
-            var accessToken = response["access_token"].ToString();
-            _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+			var accessToken = ValidateTokenExpiration(response);
+			_httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
         }
         private void SetAuthEndpoints(Dictionary<string, object> response)
         {
@@ -161,6 +154,17 @@ namespace NuClient
 		{
 			_discoveryAppEndpoints ??= GetUrls(DiscoveryAppUrl);
 			return _discoveryAppEndpoints.GetValueOrDefault(key);
+		}
+		public string? ValidateTokenExpiration(Dictionary<string, object> response)
+		{
+			if (!response.TryGetValue("access_token", out object accessToken))
+				throw new Exception("Lift must have a access_token");
+
+			var jwtToken = new JwtSecurityTokenHandler().ReadJwtToken(accessToken.ToString());
+			if (jwtToken.ValidTo <= DateTime.UtcNow)
+				throw new SecurityTokenExpiredException($"JwtToken has expired at {jwtToken.ValidTo}");
+
+			return accessToken.ToString();
 		}
 	}
 }
