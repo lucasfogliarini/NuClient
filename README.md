@@ -7,9 +7,11 @@
 ## Operações
    - `LoginAsync()`: Logar o usuário com as credenciais fornecidas.
    - `AutenticateWithQrCodeAsync(string code)`: Autentica o usuário usando um código QR.
-   - `UseCache(string filePath)`: Permite usar cache usando informações da requisição em AutenticateWithQrCodeAsync salvos em um arquivo lift.json. (O token desse cache expira em aproximadamente 1 semana)
-   - `GetEventsAsync()`: Recupera eventos da conta do usuário autenticado.
-   - `GetTransactionDetailsAsync(Event @event)`: Obtém detalhes de transaçãoo para um evento específico.
+   - `GetEventsAsync()`: Obtém eventos da conta do usuário autenticado.
+   - `GetBillsAsync()`: Obtém todas as faturas da conta do usuário autenticado.
+   - `GetBillSummaryAsync()`: Obtém o resumo de uma fatura específica.
+   - `GetTransactionDetailsAsync(Event @event)`: Obtém detalhes de um evento do tipo transação.
+   - `UseCache(string filePath) (private)`: Permite usar cache usando informações da requisição em AutenticateWithQrCodeAsync salvos em um arquivo lift.json. (O token desse cache expira em aproximadamente 1 semana)
 
 ## Como usar
 O código abaixo exemplifica como usar, mas também é possível rodar o Console.App NubankApp que está na mesma solution do código.
