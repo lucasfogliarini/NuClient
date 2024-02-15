@@ -52,7 +52,7 @@ while (!exit)
 {
 	Console.WriteLine("Digite uma opção do menu:");
 	Console.WriteLine("f: Buscar fatura de Cartão de Crédito.");
-	Console.WriteLine("e: Sair.");
+	Console.WriteLine("s: Sair.");
 	var opt = Console.ReadKey();
 	Console.Clear();
 	switch (opt.Key)
@@ -77,7 +77,7 @@ while (!exit)
 			var card = Console.ReadLine();
 			await GetBillAsync(invoiceClosingDate, card);
 			break;
-		case ConsoleKey.E:
+		case ConsoleKey.S:
 			exit = true;
 			break;
 		default:
@@ -131,13 +131,13 @@ async Task GetBillAsync(DateTime invoiceClosingDate, string? card = null)
 			CurrencyAmount = billItem.CurrencyAmount,
 			Charges = billItem.Charges,
 			Category = billItem.Category,
-			Type = billItem.Type ?? "open",
+			Type = billItem.Type ?? BillItem.openType,
 			Card = card ?? "any",
 		};
 		invoiceItems.Add(invoiceItem);
 	}
 
-	var total = invoiceItems.Where(i=> new[] { BillItem.adjustmentType , BillItem.chargeType }.Contains(i.Type)).Sum(t=>t.CurrencyAmount);
+	var total = invoiceItems.Where(i=> new[] { BillItem.adjustmentType , BillItem.chargeType, BillItem.openType }.Contains(i.Type)).Sum(t=>t.CurrencyAmount);
 	Console.WriteLine();
 	Console.WriteLine($"Total: {total}");
 	ConsoleTable
